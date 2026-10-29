@@ -160,7 +160,7 @@ function execShell(
  * cloud-provider creds, and agent sockets MUST NOT appear. To expose
  * anything else, callers opt in explicitly via `options.env`.
  */
-const DEFAULT_LOCAL_ENV_ALLOWLIST = [
+export const DEFAULT_LOCAL_ENV_ALLOWLIST = [
 	'PATH',
 	'HOME',
 	'USER',
@@ -175,6 +175,13 @@ const DEFAULT_LOCAL_ENV_ALLOWLIST = [
 	'TMPDIR',
 	'TMP',
 	'TEMP',
+	// Windows-essential environment variables: Win32 processes and cmd.exe
+	// require SystemRoot and friends to initialise DLLs (STATUS_DLL_INIT_FAILED / 0xC0000142).
+	'SystemRoot',
+	'windir',
+	'ComSpec',
+	'PATHEXT',
+	'SystemDrive',
 ] as const;
 
 export interface LocalSandboxOptions {
@@ -205,7 +212,7 @@ export interface LocalSandboxOptions {
  * is stable for the sandbox's lifetime (host mutations to `process.env`
  * after construction are NOT picked up).
  */
-function resolveBaseEnv(userEnv: LocalSandboxOptions['env']): NodeJS.ProcessEnv {
+export function resolveBaseEnv(userEnv: LocalSandboxOptions['env']): NodeJS.ProcessEnv {
 	// Reject non-record shapes (notably `true` and arrays) at runtime so
 	// we keep the option's shape open for future shorthands like
 	// `env: true` meaning "pass through all of process.env". The TS type
