@@ -1,7 +1,7 @@
 import type { AgentTool, AgentToolResult } from '@earendil-works/pi-agent-core';
 import { type Static, Type } from '@earendil-works/pi-ai';
 import { composeTimeoutSignal } from './abort.ts';
-import { decodeBase64 } from './base64.ts';
+import { decodeBase64, encodeBase64 } from './base64.ts';
 import type { PackagedSkillDirectory, Sandbox } from './types.ts';
 
 const MAX_READ_LINES = 2000;
@@ -101,6 +101,22 @@ export function createPackagedSkillReadTool(
  * the file verbs. Use it (with the other `create*Tool` factories) to compose
  * a {@link SandboxFactory}'s `tools` list instead of rebuilding from scratch.
  */
+const IMAGE_EXTENSIONS: Record<string, string> = {
+	'.png': 'image/png',
+	'.jpg': 'image/jpeg',
+	'.jpeg': 'image/jpeg',
+	'.gif': 'image/gif',
+	'.webp': 'image/webp',
+	'.bmp': 'image/bmp',
+};
+
+function getImageMimeType(filePath: string): string | undefined {
+	const lastDot = filePath.lastIndexOf('.');
+	if (lastDot === -1) return undefined;
+	const ext = filePath.slice(lastDot).toLowerCase();
+	return IMAGE_EXTENSIONS[ext];
+}
+
 export function createReadTool(env: Sandbox): AgentTool<typeof ReadParams> {
 	return {
 		name: 'read',
@@ -110,6 +126,21 @@ export function createReadTool(env: Sandbox): AgentTool<typeof ReadParams> {
 		parameters: ReadParams,
 		async execute(_toolCallId: string, params: Static<typeof ReadParams>, signal?: AbortSignal) {
 			throwIfAborted(signal);
+			const mimeType = getImageMimeType(params.path);
+			if (mimeType && typeof env.readFileBuffer === 'function') {
+				const bytes = await env.readFileBuffer(params.path);
+				const data = encodeBase64(bytes);
+				return {
+					content: [
+						{
+							type: 'image' as const,
+							data,
+							mimeType,
+						},
+					],
+					details: { path: params.path, mimeType, size: bytes.byteLength },
+				};
+			}
 			const content = await env.readFile(params.path);
 			return formatReadContent(params.path, content, params.offset, params.limit);
 		},
