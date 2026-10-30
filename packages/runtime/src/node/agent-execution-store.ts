@@ -59,7 +59,7 @@ function queryExpectsRows(query: string): boolean {
 	return false;
 }
 
-function createNodeTransactionSync(db: DatabaseSync): <T>(closure: () => T) => T {
+export function createNodeTransactionSync(db: DatabaseSync): <T>(closure: () => T) => T {
 	return <T>(closure: () => T): T => {
 		db.exec('BEGIN');
 		try {
@@ -67,7 +67,12 @@ function createNodeTransactionSync(db: DatabaseSync): <T>(closure: () => T) => T
 			db.exec('COMMIT');
 			return result;
 		} catch (error) {
-			db.exec('ROLLBACK');
+			try {
+				db.exec('ROLLBACK');
+			} catch {
+				// SQLite auto-rolls back on certain errors (e.g. ON CONFLICT ROLLBACK or I/O faults).
+				// Guard rollback cleanup so that cleanup failure does not mask the original error.
+			}
 			throw error;
 		}
 	};
