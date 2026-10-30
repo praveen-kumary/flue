@@ -49,6 +49,7 @@ const DeliveredUserMessageSchema = v.object({
 	kind: v.literal('user'),
 	body: v.string(),
 	attachments: v.optional(v.array(DeliveredAttachmentSchema)),
+	metadata: v.optional(v.record(v.string(), v.string())),
 });
 
 const DeliveredSignalMessageSchema = v.object({

@@ -65,7 +65,13 @@ export type DeliveredAttachment = (PromptImage | PromptDocument) & { filename?: 
  * JSON value and stringify it internally without a field rename.)
  */
 export type DeliveredMessage =
-	| { kind: 'user'; body: string; attachments?: DeliveredAttachment[] }
+	| {
+			kind: 'user';
+			body: string;
+			attachments?: DeliveredAttachment[];
+			/** Host-private metadata, persisted with the submission. Never rendered to the model. */
+			metadata?: Record<string, string>;
+	  }
 	| {
 			kind: 'signal';
 			/** Caller-defined event/signal type, e.g. `'slack.message'`. */
